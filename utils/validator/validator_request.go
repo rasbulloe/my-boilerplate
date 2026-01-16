@@ -1,0 +1,41 @@
+package validator
+
+import (
+	"errors"
+	"log"
+
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
+)
+
+type Validator struct {
+	Validator  *validator.Validate
+	Translator ut.Translator
+}
+
+func NewValidator() *Validator {
+	enLocale := en.New()
+	uni := ut.New(enLocale, enLocale)
+	trans, found := uni.GetTranslator("en")
+	if !found {
+		log.Fatalf("[NewValidator-1] Translator not found")
+	}
+	return &Validator{
+		Validator:  validator.New(),
+		Translator: trans,
+	}
+}
+
+func (v *Validator) Validate(i interface{}) error {
+	err := v.Validator.Struct(i)
+	if err != nil {
+		object, _ := err.(validator.ValidationErrors)
+		for _, e := range object {
+			log.Printf("[Validation-1]: %s: %s", e.Field(), e.Translate(v.Translator))
+			return errors.New(e.Translate(v.Translator))
+		}
+	}
+
+	return nil
+}
